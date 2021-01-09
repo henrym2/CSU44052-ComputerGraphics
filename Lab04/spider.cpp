@@ -16,8 +16,17 @@ Spider::Spider() {};
 
 Spider::Spider(vec3 startLoc) {
 	initialLocation = startLoc;
+	pause = false;
+	//initialRotation = startRot;
 };
-void Spider::genObject() {
+void Spider::genObject(Shader shader) {
+
+	GLuint loc1 = glGetAttribLocation(shader.ID, "vertex_position");
+	GLuint loc2 = glGetAttribLocation(shader.ID, "vertex_normal");
+	GLuint loc3 = glGetAttribLocation(shader.ID, "vertex_texture");
+
+	glGenVertexArrays(1, &vao[0]);
+	glBindVertexArray(vao[0]);
 	//Note: you may get an error "vector subscript out of range" if you are using this code for a mesh that doesnt have positions and normals
 	//Might be an idea to do a check for that before generating and binding the buffer.
 	std::string matFile = "spiderBits/body.matrix";
@@ -50,8 +59,19 @@ void Spider::genObject() {
 	//glBindBuffer(GL_ARRAY_BUFFER, vt_vbo[0]);
 	//glBufferData(GL_ARRAY_BUFFER, mesh_data[0].mPointCount * sizeof(vec2), &mesh_data[0].mTextureCoords[0], GL_STATIC_DRAW);
 
+	glEnableVertexAttribArray(loc1);
+	glBindBuffer(GL_ARRAY_BUFFER, vp_vbo[0]);
+	glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	glEnableVertexAttribArray(loc2);
+	glBindBuffer(GL_ARRAY_BUFFER, vn_vbo[0]);
+	glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+	glBindVertexArray(0);
+
 
 	for (int i = 1; i < NUM_LEGS + NUM_FEET + NUM_LEG_JOINTS + 1; i++) {
+		glGenVertexArrays(1, &vao[i]);
+		glBindVertexArray(vao[i]);
 
 		char* n = new char[23];
 		std::string file = "spiderBits/" + std::to_string(i) + ".obj";
@@ -82,20 +102,33 @@ void Spider::genObject() {
 		//glGenBuffers(1, &vt_vbo[i]);
 		//glBindBuffer(GL_ARRAY_BUFFER, vt_vbo[i]);
 		//glBufferData(GL_ARRAY_BUFFER, mesh_data[i].mPointCount * sizeof(vec3), &mesh_data[i].mTextureCoords[0], GL_STATIC_DRAW);
-	}
 
-	unsigned int vao = 0;
-	glBindVertexArray(vao);
+		glEnableVertexAttribArray(loc1);
+		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo[i]);
+		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+		glEnableVertexAttribArray(loc2);
+		glBindBuffer(GL_ARRAY_BUFFER, vn_vbo[i]);
+		glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
+		glBindVertexArray(0);
+
+	}
 }
 
 void Spider::update(float delta) {
 	DWORD curr_time = timeGetTime();
-	rotate_y = cos(curr_time / 240.0f) * 20.0f;
-	//rotate_y = fmodf(rotate_y, 360.0f);
-	mid_y = sin(curr_time / 240.0f) * 10.0f;
-	sway_y = sin(curr_time / 240.0f) * 20.0f;
-	forward_x += delta * 4.0f;
-	bob = sin(curr_time / 120.0f) * 0.05f;
+	if (!pause) {
+		rotate_y = cos(curr_time / 240.0f) * 20.0f;
+		//rotate_y = fmodf(rotate_y, 360.0f);
+		mid_y = sin(curr_time / 240.0f) * 10.0f;
+		sway_y = sin(curr_time / 240.0f) * 20.0f;
+		forward_x += delta * 4.0f;
+		bob = sin(curr_time / 120.0f) * 0.05f;
+	}
+	if (forward_x > 58.0f) {
+		forward_x = 0;
+	}
 }
 
 void Spider::draw(Shader shaderProgram, Camera camera) {
@@ -125,19 +158,17 @@ void Spider::draw(Shader shaderProgram, Camera camera) {
 		reset = false;
 	}
 
-	glEnableVertexAttribArray(loc1);
-	glBindBuffer(GL_ARRAY_BUFFER, vp_vbo[0]);
-	glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-	glEnableVertexAttribArray(loc2);
-	glBindBuffer(GL_ARRAY_BUFFER, vn_vbo[0]);
-	glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+	
 	//glEnableVertexAttribArray(loc3);
 	//glBindBuffer(GL_ARRAY_BUFFER, vt_vbo[0]);
 	//glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
 
 	// update uniforms & draw
+	glBindVertexArray(vao[0]);
 	glUniformMatrix4fv(matrix_location, 1, GL_FALSE, model.m);
 	glDrawArrays(GL_TRIANGLES, 0, mesh_data[0].mPointCount);
+	glBindVertexArray(0);
+
 
 	for (int i = 1; i < NUM_LEGS + 1; i++) {
 
@@ -155,16 +186,19 @@ void Spider::draw(Shader shaderProgram, Camera camera) {
 		float lowerX = 0;
 		float initialX = 0;
 
-		if (i % 2 == 1) {
-			upperX = initialX + rotate_y;
-			midX = (-upperX / 3.0f) + mid_y;
-			lowerX = sway_y;
-		}
-		else if (i % 2 == 0) {
-			upperX = initialX - rotate_y;
-			midX = (-upperX / 3.0f) - mid_y;
-			lowerX = -sway_y;
-		}
+		
+		
+			if (i % 2 == 1) {
+				upperX = initialX + rotate_y;
+				midX = (-upperX / 3.0f) + mid_y;
+				lowerX = sway_y;
+			}
+			else if (i % 2 == 0) {
+				upperX = initialX - rotate_y;
+				midX = (-upperX / 3.0f) - mid_y;
+				lowerX = -sway_y;
+			}
+		
 
 		upperLegModel = rotate_x_deg(upperLegModel, upperX);
 		midLegModel = rotate_x_deg(midLegModel, midX);
@@ -182,60 +216,20 @@ void Spider::draw(Shader shaderProgram, Camera camera) {
 		//First child to the mid leg
 		lowerLegModel = midLegModel * lowerLegModel;
 
-		glEnableVertexAttribArray(loc1);
-		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo[LEG_UPPER]);
-		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		glEnableVertexAttribArray(loc2);
-		glBindBuffer(GL_ARRAY_BUFFER, vn_vbo[LEG_UPPER]);
-		glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		//glEnableVertexAttribArray(loc3);
-		//glBindBuffer(GL_ARRAY_BUFFER, vt_vbo[LEG_UPPER]);
-		//glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		// Update the appropriate uniform and draw the mesh again
-
-
+		glBindVertexArray(vao[LEG_UPPER]);
 		glUniformMatrix4fv(matrix_location, 1, GL_FALSE, upperLegModel.m);
 		glDrawArrays(GL_TRIANGLES, 3, mesh_data[LEG_UPPER].mPointCount);
+		glBindVertexArray(0);
 
-
-		glEnableVertexAttribArray(loc1);
-		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo[LEG_MID]);
-		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		glEnableVertexAttribArray(loc2);
-		glBindBuffer(GL_ARRAY_BUFFER, vn_vbo[LEG_MID]);
-		glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		//glEnableVertexAttribArray(loc3);
-		//glBindBuffer(GL_ARRAY_BUFFER, vt_vbo[LEG_MID]);
-		//glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		// Update the appropriate uniform and draw the mesh again
-
+		glBindVertexArray(vao[LEG_MID]);
 		glUniformMatrix4fv(matrix_location, 1, GL_FALSE, midLegModel.m);
 		glDrawArrays(GL_TRIANGLES, 3, mesh_data[LEG_MID].mPointCount);
+		glBindVertexArray(0);
 
-
-
-		glEnableVertexAttribArray(loc1);
-		glBindBuffer(GL_ARRAY_BUFFER, vp_vbo[LEG_LOWER]);
-		glVertexAttribPointer(loc1, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		glEnableVertexAttribArray(loc2);
-		glBindBuffer(GL_ARRAY_BUFFER, vn_vbo[LEG_LOWER]);
-		glVertexAttribPointer(loc2, 3, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		//glEnableVertexAttribArray(loc3);
-		//glBindBuffer(GL_ARRAY_BUFFER, vt_vbo[LEG_LOWER]);
-		//glVertexAttribPointer(loc3, 2, GL_FLOAT, GL_FALSE, 0, NULL);
-
-		// Update the appropriate uniform and draw the mesh again
-
+		glBindVertexArray(vao[LEG_LOWER]);
 		glUniformMatrix4fv(matrix_location, 1, GL_FALSE, lowerLegModel.m);
 		glDrawArrays(GL_TRIANGLES, 3, mesh_data[LEG_LOWER].mPointCount);
+		glBindVertexArray(0);
 	}
 }
 
@@ -243,4 +237,8 @@ void Spider::keyPress(unsigned char key, int x, int y) {
 	if (key == 'r') {
 		reset = true;
 	}
+}
+
+void Spider::clicked() {
+	pause = !pause;
 }

@@ -25,9 +25,10 @@
 // Project includes
 #include "obj_parser.h"
 #include "camera.h"
-#include "Mesh.h"
 #include "maths_funcs.h"
 #include "obj_parser.h"
+#include "Shader.h"
+
 
 typedef struct
 {
@@ -39,7 +40,18 @@ typedef struct
 } ModelData;
 
 class Mesh {
+private:
+	ModelData modelData;
+	GLuint loc1, loc2, loc3;
+	unsigned int vp_vbo, vn_vbo, vao, ebo, vt_vbo;
+
 public:
+	const char* name;
+	vec3 transformMat;
 	Mesh();
+	Mesh(const aiMesh* mesh, vec3 transformation, const char* name);
 	ModelData load_mesh(const char* file_name);
+	void draw(mat4 transform, GLuint matrix_location, GLuint texture, Shader shaderProgram);
+	void generateObjectBufferMesh(Shader shaderProgram);
+
 };

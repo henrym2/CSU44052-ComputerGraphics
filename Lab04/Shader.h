@@ -28,6 +28,7 @@ public:
 	void setInt(const std::string &name, int value) const;
 	void setFloat(const std::string &name, float value) const;
 	void setVec3(const std::string &name, vec3 value) const;
+	void setMat4(const std::string &name, const mat4 &mat) const;
 private:
 	char* readShaderSource(const char* shaderFile);
 	void AddShader(GLuint ShaderProgram, const char* pShaderText, GLenum ShaderType);

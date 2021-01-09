@@ -9,6 +9,7 @@
 #include "maths_funcs.h"
 #include <vector>
 #include <math.h>
+#include "glm.hpp"
 
 enum Camera_Movement {
 	FORWARD,
@@ -101,12 +102,16 @@ public:
 		void updateCameraVectors()
 		{
 			// calculate the new Front vector
-			vec3 front;
-			front.v[0] = cos(Convert(Yaw)) * cos(Convert(Pitch));
-			front.v[1] = sin(Convert(Pitch));
-			front.v[2] = sin(Convert(Yaw)) * cos(Convert(Pitch));
+			glm::vec3 front;
+			front.x = cos(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+			front.y = sin(glm::radians(Pitch));
+			front.z = sin(glm::radians(Yaw)) * cos(glm::radians(Pitch));
+
+			front = glm::normalize(front);
+			Front.v[0] = front.x;
+			Front.v[1] = front.y;
+			Front.v[2] = front.z;
 			
-			Front = normalise(front);
 			// also re-calculate the Right and Up vector
 			Right = normalise(cross(Front, WorldUp));  // normalize the vectors, because their length gets closer to 0 the more you look up or down which results in slower movement.
 			Up = normalise(cross(Right, Front));

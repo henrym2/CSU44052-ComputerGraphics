@@ -44,10 +44,12 @@ private:
 	int NUM_LEG_JOINTS = 8;
 	int NUM_FEET = 8;
 
+	bool pause;
 	bool reset = false;
 	vec3 initialLocation;
 
 	ModelData* mesh_data = new ModelData[NUM_LEGS + NUM_LEG_JOINTS + NUM_FEET + 1];
+	unsigned int* vao = new unsigned int[NUM_LEGS + NUM_LEG_JOINTS + NUM_FEET + 1];
 	unsigned int* vp_vbo = new unsigned int[NUM_LEGS + NUM_LEG_JOINTS + NUM_FEET + 1];
 	unsigned int* vn_vbo = new unsigned int[NUM_LEGS + NUM_LEG_JOINTS + NUM_FEET + 1];
 	unsigned int* vt_vbo = new unsigned int[NUM_LEGS + NUM_LEG_JOINTS + NUM_FEET + 1];
@@ -55,8 +57,9 @@ private:
 public:
 	Spider();
 	Spider(vec3 startLoc);
-	void genObject();
+	void genObject(Shader shader);
 	void draw(Shader shaderProgram, Camera camera);
 	void update(float delta);
 	void keyPress(unsigned char key, int x, int y);
+	void clicked();
 };
